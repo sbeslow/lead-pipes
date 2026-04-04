@@ -14,6 +14,7 @@ import pandas as pd
 BASE_DIR = Path(__file__).parent.parent
 PARKS_CSV = BASE_DIR / "data/processed/parks_geocoded.csv"
 FOUNTAINS_CSV = BASE_DIR / "data/processed/fountains.csv"
+FOIA_XLSX = BASE_DIR / "data/raw/FOIA_RESPONSES/R - 6464.xlsx"
 OUTPUT_JSON = BASE_DIR / "data/build/fountains.json"
 
 # Truly offline — no result shown
@@ -83,7 +84,72 @@ def str_or_none(val):
     return s if s else None
 
 
-def build_fountain(row):
+def parse_ppb(val):
+    """Parse a ppb result value from the Excel. Handles '<2.00', '< 2.00', floats, NaN."""
+    if val is None or (isinstance(val, float) and math.isnan(val)):
+        return None
+    s = str(val).strip().replace("<", "").replace(" ", "")
+    try:
+        return round(float(s), 1)
+    except ValueError:
+        return None
+
+
+def load_test_history():
+    """
+    Parse the raw FOIA Excel and return a dict:
+      fountain_id -> [{"round": str, "date": str, "result_ppb": float|None}, ...]
+    sorted from most recent to oldest, with None-result entries omitted.
+    """
+    history = {}
+
+    for sheet, id_col in [("Outdoor", 0), ("Indoor", 1)]:
+        df = pd.read_excel(FOIA_XLSX, sheet_name=sheet, header=None)
+        year_row = df.iloc[1]
+
+        # Build list of (result_col, date_col, round_label) by scanning row 1
+        # Year labels sit at even positions; propagate year forward for unlabelled followups
+        rounds = []
+        current_year = ""
+        for col_idx in range(9 if sheet == "Outdoor" else 6, len(df.columns), 2):
+            label = year_row.iloc[col_idx] if col_idx < len(year_row) else None
+            if pd.notna(label):
+                label = str(label).strip()
+                # If the label contains a year, update current_year
+                for y in ["2025", "2024", "2023", "2022", "2021"]:
+                    if y in label:
+                        current_year = y
+                        break
+                # If no year in label (e.g. "Followup 3"), prepend current year
+                if not any(y in label for y in ["2025", "2024", "2023", "2022", "2021"]):
+                    label = f"{current_year} {label}"
+                rounds.append((col_idx, col_idx + 1, label))
+
+        # Parse data rows (skip rows 0-2 which are headers)
+        for _, row in df.iloc[3:].iterrows():
+            fountain_id = str_or_none(row.iloc[id_col])
+            if not fountain_id:
+                continue
+            results = []
+            for res_col, date_col, label in rounds:
+                ppb = parse_ppb(row.iloc[res_col] if res_col < len(row) else None)
+                date_val = row.iloc[date_col] if date_col < len(row) else None
+                date_str = None
+                if pd.notna(date_val) and date_val is not None:
+                    try:
+                        date_str = pd.Timestamp(date_val).strftime("%Y-%m-%d")
+                    except Exception:
+                        pass
+                if ppb is not None or date_str is not None:
+                    results.append({"round": label, "date": date_str, "result_ppb": ppb})
+            if results:
+                history[fountain_id] = results
+
+    print(f"Loaded test history for {len(history)} fountains")
+    return history
+
+
+def build_fountain(row, test_history=None):
     level = safety_level(row)
     ppb = nan_to_none(row.get("latest_result_ppb"))
     ppb_display = round(float(ppb), 1) if ppb is not None else None
@@ -93,8 +159,9 @@ def build_fountain(row):
     remediated = bool(row.get("remediated", False))
     tested_2025 = bool(row.get("tested_2025", False))
 
+    fountain_id = str(row["fountain_id"])
     return {
-        "fountain_id": str(row["fountain_id"]),
+        "fountain_id": fountain_id,
         "location": str(row.get("location", "")),
         "location_description": str_or_none(row.get("location_description")),
         "type": str(row.get("type", "")),
@@ -108,14 +175,15 @@ def build_fountain(row):
         "remediated": remediated,
         "safety_level": level,
         "recommendation": recommendation(level, ppb_display, status, remediation_plan, remediated),
+        "test_history": test_history.get(fountain_id, []) if test_history else [],
     }
 
 
-def build_park(park_row, fountains_for_park):
+def build_park(park_row, fountains_for_park, test_history=None):
     lat = nan_to_none(park_row.get("lat"))
     lng = nan_to_none(park_row.get("lng"))
 
-    fountain_objects = [build_fountain(f) for _, f in fountains_for_park.iterrows()]
+    fountain_objects = [build_fountain(f, test_history) for _, f in fountains_for_park.iterrows()]
     active_levels = [
         f["safety_level"] for f in fountain_objects
         if f["status"].upper() not in OFFLINE_STATUSES
@@ -149,13 +217,14 @@ def main():
     parks_df["_join_id"] = parks_df["id"].astype(int)
     fountains_df["_join_id"] = fountains_df["park_id"].astype(int)
 
+    test_history = load_test_history()
     print(f"Loaded {len(parks_df)} parks, {len(fountains_df)} fountains")
 
     park_list = []
     for _, park_row in parks_df.iterrows():
         join_id = int(park_row["id"])
         park_fountains = fountains_df[fountains_df["_join_id"] == join_id]
-        park_list.append(build_park(park_row, park_fountains))
+        park_list.append(build_park(park_row, park_fountains, test_history))
 
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
