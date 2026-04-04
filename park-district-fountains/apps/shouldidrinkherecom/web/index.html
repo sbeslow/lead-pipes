@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Should I Drink Here?</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <button id="back-btn" class="hidden" aria-label="Back to results">&#8592; Back</button>
+      <div id="header-text">
+        <h1>Should I Drink Here?</h1>
+        <p class="subtitle">Chicago Park Fountain Lead Test Results</p>
+      </div>
+    </header>
+
+    <main>
+      <div id="loading-screen">
+        <div class="spinner"></div>
+        <p id="loading-msg">Finding your location…</p>
+      </div>
+
+      <div id="results-screen" class="hidden">
+        <p id="results-summary"></p>
+        <div id="park-list"></div>
+      </div>
+
+      <div id="detail-screen" class="hidden">
+        <div id="park-header">
+          <div>
+            <h2 id="detail-park-name"></h2>
+            <p id="detail-park-address"></p>
+          </div>
+          <span id="detail-park-badge"></span>
+        </div>
+        <div id="detail-fountain-list"></div>
+      </div>
+
+      <div id="error-screen" class="hidden">
+        <p id="error-msg"></p>
+        <button id="error-retry-btn">Try again</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
