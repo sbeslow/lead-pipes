@@ -16,6 +16,11 @@
       </div>
     </header>
 
+    <nav id="tab-bar">
+      <button class="tab active" data-tab="near-me">Near Me</button>
+      <button class="tab" data-tab="all-parks">All Parks</button>
+    </nav>
+
     <main>
       <div id="loading-screen">
         <div class="spinner"></div>
@@ -25,6 +30,12 @@
       <div id="results-screen" class="hidden">
         <p id="results-summary"></p>
         <div id="park-list"></div>
+      </div>
+
+      <div id="all-parks-screen" class="hidden">
+        <input id="search-input" type="search" placeholder="Search parks…" autocomplete="off">
+        <p id="search-summary"></p>
+        <div id="all-park-list"></div>
       </div>
 
       <div id="detail-screen" class="hidden">
