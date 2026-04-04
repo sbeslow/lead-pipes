@@ -3,60 +3,95 @@ const HALF_MILE_METERS = 804.672;
 const SAFETY_RANK = { danger: 0, caution: 1, safe: 2, unknown: 3 };
 
 let allData = null;
-let activeTab = "near-me";
-let navStack = []; // screen ids for back button
 
-// ---- Screens ----
+// ---- Hash-based routing ----
+// Hashes:  #           → near me
+//          #all-parks  → all parks (empty search)
+//          #all-parks/QUERY → all parks filtered
+//          #park/ID    → park detail
+//          #fountain/ID → fountain detail
 
-function show(id, pushToStack = false) {
-  if (pushToStack) {
-    const current = document.querySelector("main > div:not(.hidden)");
-    if (current) navStack.push(current.id);
-  }
-  for (const el of document.querySelectorAll("main > div")) {
-    el.classList.add("hidden");
-  }
+function getHash() {
+  return decodeURIComponent(window.location.hash.slice(1));
+}
+
+function setHash(hash, replace = false) {
+  const url = "#" + encodeURIComponent(hash);
+  if (replace) history.replaceState(null, "", url);
+  else history.pushState(null, "", url);
+}
+
+function activeTab() {
+  const h = getHash();
+  return h.startsWith("all-parks") ? "all-parks" : "near-me";
+}
+
+function show(id) {
+  for (const el of document.querySelectorAll("main > div")) el.classList.add("hidden");
   document.getElementById(id).classList.remove("hidden");
 
   const atRoot = id === "results-screen" || id === "all-parks-screen" ||
                  id === "loading-screen" || id === "error-screen";
   document.getElementById("back-btn").classList.toggle("hidden", atRoot);
   document.getElementById("tab-bar").classList.toggle("hidden", !atRoot);
+
+  const tab = activeTab();
+  document.querySelectorAll(".tab").forEach((t) =>
+    t.classList.toggle("active", t.dataset.tab === tab)
+  );
 }
 
 function goBack() {
-  const prev = navStack.pop();
-  if (prev) show(prev);
-  else show(activeTab === "all-parks" ? "all-parks-screen" : "results-screen");
-  window.scrollTo(0, 0);
+  history.back();
 }
+
+// Route to the correct screen based on current hash (called on load + popstate)
+function route() {
+  if (!allData) return; // not loaded yet — boot() will call route() when ready
+  const hash = getHash();
+
+  if (hash.startsWith("fountain/")) {
+    const id = hash.slice("fountain/".length);
+    const f = findFountain(id);
+    if (f) { renderFountainDetail(f); show("fountain-screen"); return; }
+  }
+  if (hash.startsWith("park/")) {
+    const id = hash.slice("park/".length);
+    const park = allData.parks.find((p) => p.park_id === id);
+    if (park) { renderParkDetail(park); show("detail-screen"); return; }
+  }
+  if (hash.startsWith("all-parks")) {
+    const q = hash.includes("/") ? hash.slice("all-parks/".length) : "";
+    document.getElementById("search-input").value = q;
+    renderAllParks(allData.parks, q);
+    show("all-parks-screen");
+    return;
+  }
+  // Default: near-me
+  show("results-screen");
+}
+
+window.addEventListener("popstate", () => { route(); window.scrollTo(0, 0); });
 
 // ---- Tabs ----
 
 document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
-    btn.classList.add("active");
-    activeTab = btn.dataset.tab;
-    navStack = [];
-
-    if (activeTab === "near-me") {
-      show("results-screen");
-    } else {
-      show("all-parks-screen");
+    if (btn.dataset.tab === "all-parks") {
       const q = document.getElementById("search-input").value;
-      if (allData) renderAllParks(allData.parks, q);
+      setHash(q ? `all-parks/${q}` : "all-parks");
+    } else {
+      setHash("");
     }
+    route();
   });
 });
 
 document.getElementById("header-text").style.cursor = "pointer";
 document.getElementById("header-text").addEventListener("click", () => {
-  navStack = [];
-  document.querySelectorAll(".tab").forEach((t) =>
-    t.classList.toggle("active", t.dataset.tab === activeTab)
-  );
-  show(activeTab === "all-parks" ? "all-parks-screen" : "results-screen");
+  const tab = activeTab();
+  setHash(tab === "all-parks" ? "all-parks" : "");
+  route();
   window.scrollTo(0, 0);
 });
 
@@ -72,6 +107,13 @@ async function boot() {
     allData = await res.json();
   } catch {
     showError("Could not load fountain data. Make sure you're running this from a local server (python -m http.server).");
+    return;
+  }
+
+  // If hash points to a park/fountain detail, go there immediately without geolocating
+  const hash = getHash();
+  if (hash.startsWith("park/") || hash.startsWith("fountain/") || hash.startsWith("all-parks")) {
+    route();
     return;
   }
 
@@ -125,6 +167,7 @@ function onLocation(userLat, userLng) {
     bindParkCards(list, (id) => allData.parks.find((p) => p.park_id === id));
   }
 
+  setHash("", true);
   show("results-screen");
 }
 
@@ -148,7 +191,9 @@ function renderAllParks(parks, query) {
 }
 
 document.getElementById("search-input").addEventListener("input", (e) => {
-  if (allData) renderAllParks(allData.parks, e.target.value);
+  const q = e.target.value;
+  setHash(q ? `all-parks/${q}` : "all-parks", true); // replace so search typing doesn't bloat history
+  if (allData) renderAllParks(allData.parks, q);
 });
 
 // ---- Park cards ----
@@ -186,6 +231,13 @@ function bindParkCards(container, findPark) {
 // ---- Park detail ----
 
 function openDetail(park) {
+  setHash(`park/${park.park_id}`);
+  renderParkDetail(park);
+  show("detail-screen");
+  window.scrollTo(0, 0);
+}
+
+function renderParkDetail(park) {
   document.getElementById("detail-park-name").textContent = park.park_name;
   document.getElementById("detail-park-address").textContent = park.address;
   document.getElementById("detail-park-badge").className = `safety-badge ${park.safety_level}`;
@@ -198,9 +250,6 @@ function openDetail(park) {
   if (indoor.length)  html += fountainGroup("Indoor", indoor);
   document.getElementById("detail-fountain-list").innerHTML = html;
   bindFountainRows(document.getElementById("detail-fountain-list"));
-
-  show("detail-screen", true);
-  window.scrollTo(0, 0);
 }
 
 function fountainGroup(label, fountains) {
@@ -253,6 +302,13 @@ function findFountain(fountainId) {
 }
 
 function openFountainDetail(f) {
+  setHash(`fountain/${f.fountain_id}`);
+  renderFountainDetail(f);
+  show("fountain-screen");
+  window.scrollTo(0, 0);
+}
+
+function renderFountainDetail(f) {
   const lastTested = f.tested_2025 ? "2025" : (f.latest_result_ppb != null ? "Before 2025" : "Never");
   const ppbHTML = f.latest_result_ppb != null
     ? `<div class="fd-stat"><span class="fd-stat-label">Latest result</span><span class="fd-stat-value">${f.latest_result_ppb} ppb</span></div>`
@@ -287,7 +343,7 @@ function openFountainDetail(f) {
       </div>`
     : "";
 
-  document.getElementById("fountain-detail").innerHTML = `
+  document.getElementById("fountain-detail").innerHTML = /* html */`
     <div class="fd-header ${f.safety_level}">
       <div>
         <h2 class="fd-title">${esc(f.location)}</h2>
@@ -314,8 +370,6 @@ function openFountainDetail(f) {
     <p class="fd-id">Fixture ID: ${esc(f.fountain_id)}</p>
   `;
 
-  show("fountain-screen", true);
-  window.scrollTo(0, 0);
 }
 
 // ---- Back button ----
@@ -328,7 +382,10 @@ function showError(msg) {
   document.getElementById("error-msg").textContent = msg;
   show("error-screen");
 }
-document.getElementById("error-retry-btn").addEventListener("click", boot);
+document.getElementById("error-retry-btn").addEventListener("click", () => {
+  setHash("", true);
+  boot();
+});
 
 // ---- Utils ----
 

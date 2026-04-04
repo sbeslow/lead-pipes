@@ -143,6 +143,8 @@ def load_test_history():
                 if ppb is not None or date_str is not None:
                     results.append({"round": label, "date": date_str, "result_ppb": ppb})
             if results:
+                # Sort most recent first; entries without a date go last
+                results.sort(key=lambda r: r["date"] or "", reverse=True)
                 history[fountain_id] = results
 
     print(f"Loaded test history for {len(history)} fountains")
