@@ -37,3 +37,5 @@ Add a CloudFront distribution for HTTPS + custom domain.
 Fountains with status `CONT` (remediation continuation) are evaluated by their test result like any active fountain. Only `OFF`, `REMOVED`, and `DOES NOT EXIST` are treated as unknown.
 
 Park-level safety is the worst safety level among its active fixtures.
+
+This code was almost entirely written by Claude code

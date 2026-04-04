@@ -3,19 +3,32 @@ const HALF_MILE_METERS = 804.672;
 const SAFETY_RANK = { danger: 0, caution: 1, safe: 2, unknown: 3 };
 
 let allData = null;
-let activeTab = "near-me"; // tracks where back button should return to
+let activeTab = "near-me";
+let navStack = []; // screen ids for back button
 
 // ---- Screens ----
 
-function show(id) {
+function show(id, pushToStack = false) {
+  if (pushToStack) {
+    const current = document.querySelector("main > div:not(.hidden)");
+    if (current) navStack.push(current.id);
+  }
   for (const el of document.querySelectorAll("main > div")) {
     el.classList.add("hidden");
   }
   document.getElementById(id).classList.remove("hidden");
 
-  const inDetail = id === "detail-screen";
-  document.getElementById("back-btn").classList.toggle("hidden", !inDetail);
-  document.getElementById("tab-bar").classList.toggle("hidden", inDetail);
+  const atRoot = id === "results-screen" || id === "all-parks-screen" ||
+                 id === "loading-screen" || id === "error-screen";
+  document.getElementById("back-btn").classList.toggle("hidden", atRoot);
+  document.getElementById("tab-bar").classList.toggle("hidden", !atRoot);
+}
+
+function goBack() {
+  const prev = navStack.pop();
+  if (prev) show(prev);
+  else show(activeTab === "all-parks" ? "all-parks-screen" : "results-screen");
+  window.scrollTo(0, 0);
 }
 
 // ---- Tabs ----
@@ -25,14 +38,26 @@ document.querySelectorAll(".tab").forEach((btn) => {
     document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
     btn.classList.add("active");
     activeTab = btn.dataset.tab;
+    navStack = [];
 
     if (activeTab === "near-me") {
       show("results-screen");
     } else {
       show("all-parks-screen");
-      if (allData) renderAllParks(allData.parks, "");
+      const q = document.getElementById("search-input").value;
+      if (allData) renderAllParks(allData.parks, q);
     }
   });
+});
+
+document.getElementById("header-text").style.cursor = "pointer";
+document.getElementById("header-text").addEventListener("click", () => {
+  navStack = [];
+  document.querySelectorAll(".tab").forEach((t) =>
+    t.classList.toggle("active", t.dataset.tab === activeTab)
+  );
+  show(activeTab === "all-parks" ? "all-parks-screen" : "results-screen");
+  window.scrollTo(0, 0);
 });
 
 // ---- Boot ----
@@ -172,8 +197,9 @@ function openDetail(park) {
   if (outdoor.length) html += fountainGroup("Outdoor", outdoor);
   if (indoor.length)  html += fountainGroup("Indoor", indoor);
   document.getElementById("detail-fountain-list").innerHTML = html;
+  bindFountainRows(document.getElementById("detail-fountain-list"));
 
-  show("detail-screen");
+  show("detail-screen", true);
   window.scrollTo(0, 0);
 }
 
@@ -190,34 +216,111 @@ function fountainRow(f) {
   const bottleHTML = f.is_bottle_filler ? `<span class="tag bottle">Bottle filler</span>` : "";
   const statusHTML = f.status !== "ON" ? `<span class="tag status">${esc(f.status)}</span>` : "";
   const lastTested = f.tested_2025 ? "Tested in 2025" : (f.latest_result_ppb != null ? "Last tested before 2025" : "Never tested");
-  const remediationHTML = f.remediation_plan
-    ? `<p class="f-remediation ${f.remediated ? "done" : "pending"}">${f.remediated ? "Remediated" : "Remediation in progress"}: ${esc(f.remediation_plan)}</p>`
-    : "";
-  const historyHTML = f.ever_elevated && f.max_lead_ever_ppb != null
-    ? `<p class="f-history">Historical high: ${f.max_lead_ever_ppb} ppb</p>` : "";
 
   return `
-    <div class="fountain-row ${f.safety_level}">
+    <div class="fountain-row ${f.safety_level}" data-fountain-id="${esc(f.fountain_id)}" role="button" tabindex="0">
       <div class="f-top">
         <div class="f-left">
           <p class="f-location">${esc(f.location)}</p>
           ${descHTML}
           <div class="tags">${bottleHTML}${statusHTML}<span class="tag tested">${lastTested}</span></div>
         </div>
-        <span class="safety-badge ${f.safety_level}">${badgeLabel(f.safety_level)}</span>
+        <div class="f-right">
+          <span class="safety-badge ${f.safety_level}">${badgeLabel(f.safety_level)}</span>
+          <span class="f-chevron">›</span>
+        </div>
       </div>
       <p class="rec ${f.safety_level}">${esc(f.recommendation)}</p>
-      ${remediationHTML}
-      ${historyHTML}
     </div>`;
+}
+
+function bindFountainRows(container) {
+  container.querySelectorAll(".fountain-row").forEach((el) => {
+    const handler = () => {
+      const fountain = findFountain(el.dataset.fountainId);
+      if (fountain) openFountainDetail(fountain);
+    };
+    el.addEventListener("click", handler);
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") handler(); });
+  });
+}
+
+function findFountain(fountainId) {
+  for (const park of allData.parks) {
+    const f = park.fountains.find((f) => f.fountain_id === fountainId);
+    if (f) return f;
+  }
+}
+
+function openFountainDetail(f) {
+  const lastTested = f.tested_2025 ? "2025" : (f.latest_result_ppb != null ? "Before 2025" : "Never");
+  const ppbHTML = f.latest_result_ppb != null
+    ? `<div class="fd-stat"><span class="fd-stat-label">Latest result</span><span class="fd-stat-value">${f.latest_result_ppb} ppb</span></div>`
+    : "";
+  const maxPpbHTML = f.max_lead_ever_ppb != null
+    ? `<div class="fd-stat"><span class="fd-stat-label">Historical high</span><span class="fd-stat-value ${f.ever_elevated ? "elevated" : ""}">${f.max_lead_ever_ppb} ppb</span></div>`
+    : "";
+  const remediationHTML = f.remediation_plan ? `
+    <div class="fd-section">
+      <p class="fd-section-label">Remediation</p>
+      <p class="fd-section-value">${esc(f.remediation_plan)}</p>
+      <p class="f-remediation ${f.remediated ? "done" : "pending"} fd-inline">${f.remediated ? "Complete" : "In progress"}</p>
+    </div>` : "";
+
+  const historyHTML = f.test_history && f.test_history.length
+    ? `<div class="fd-section">
+        <p class="fd-section-label">Test history</p>
+        <table class="test-history">
+          <thead><tr><th>Date</th><th>Round</th><th>Result</th></tr></thead>
+          <tbody>
+            ${f.test_history.map((t) => {
+              const ppb = t.result_ppb;
+              const lvl = ppb == null ? "unknown" : ppb < 5 ? "safe" : ppb <= 15 ? "caution" : "danger";
+              return `<tr>
+                <td>${t.date ?? "—"}</td>
+                <td>${esc(t.round)}</td>
+                <td class="th-result ${lvl}">${ppb != null ? ppb + " ppb" : "—"}</td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>`
+    : "";
+
+  document.getElementById("fountain-detail").innerHTML = `
+    <div class="fd-header ${f.safety_level}">
+      <div>
+        <h2 class="fd-title">${esc(f.location)}</h2>
+        ${f.location_description ? `<p class="fd-subtitle">${esc(f.location_description)}</p>` : ""}
+      </div>
+      <span class="safety-badge ${f.safety_level}">${badgeLabel(f.safety_level)}</span>
+    </div>
+
+    <p class="rec ${f.safety_level} fd-rec">${esc(f.recommendation)}</p>
+
+    <div class="fd-stats">
+      ${ppbHTML}
+      ${maxPpbHTML}
+      <div class="fd-stat"><span class="fd-stat-label">Last tested</span><span class="fd-stat-value">${lastTested}</span></div>
+      <div class="fd-stat"><span class="fd-stat-label">Type</span><span class="fd-stat-value">${esc(f.type)}</span></div>
+      <div class="fd-stat"><span class="fd-stat-label">Status</span><span class="fd-stat-value">${esc(f.status)}</span></div>
+      <div class="fd-stat"><span class="fd-stat-label">Bottle filler</span><span class="fd-stat-value">${f.is_bottle_filler ? "Yes" : "No"}</span></div>
+      <div class="fd-stat"><span class="fd-stat-label">Ever elevated</span><span class="fd-stat-value ${f.ever_elevated ? "elevated" : ""}">${f.ever_elevated ? "Yes" : "No"}</span></div>
+    </div>
+
+    ${remediationHTML}
+    ${historyHTML}
+
+    <p class="fd-id">Fixture ID: ${esc(f.fountain_id)}</p>
+  `;
+
+  show("fountain-screen", true);
+  window.scrollTo(0, 0);
 }
 
 // ---- Back button ----
 
-document.getElementById("back-btn").addEventListener("click", () => {
-  show(activeTab === "all-parks" ? "all-parks-screen" : "results-screen");
-  window.scrollTo(0, 0);
-});
+document.getElementById("back-btn").addEventListener("click", goBack);
 
 // ---- Error ----
 
