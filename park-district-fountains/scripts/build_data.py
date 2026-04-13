@@ -40,7 +40,7 @@ def safety_level(row):
         return "danger"
 
 
-def recommendation(level, ppb, status, remediation_plan, remediated):
+def recommendation(level, ppb, status, remediation_plan, remediated, below_detection=False):
     """Human-readable recommendation string."""
     in_remediation = str(status).strip().upper() in REMEDIATION_STATUSES
     remediation_note = ""
@@ -48,12 +48,13 @@ def recommendation(level, ppb, status, remediation_plan, remediated):
         done = bool(remediated)
         remediation_note = f" Remediation {'complete' if done else 'in progress'}: {remediation_plan}."
 
+    ppb_str = f"< {ppb:g}" if (below_detection and ppb is not None) else str(ppb)
     if level == "safe":
-        return f"Safe to drink \u2014 last result: {ppb} ppb.{remediation_note}"
+        return f"Safe to drink \u2014 last result: {ppb_str} ppb.{remediation_note}"
     elif level == "caution":
-        return f"Use caution \u2014 last result: {ppb} ppb (near EPA limit of 15 ppb).{remediation_note}"
+        return f"Use caution \u2014 last result: {ppb_str} ppb (near EPA limit of 15 ppb).{remediation_note}"
     elif level == "danger":
-        return f"Do not drink \u2014 last result: {ppb} ppb (above EPA action level).{remediation_note}"
+        return f"Do not drink \u2014 last result: {ppb_str} ppb (above EPA action level).{remediation_note}"
     else:
         if in_remediation:
             plan = f": {remediation_plan}" if remediation_plan else ""
@@ -85,14 +86,17 @@ def str_or_none(val):
 
 
 def parse_ppb(val):
-    """Parse a ppb result value from the Excel. Handles '<2.00', '< 2.00', floats, NaN."""
+    """Parse a ppb result value from the Excel. Handles '<2.00', '< 2.00', floats, NaN.
+    Returns (value, below_detection) tuple where below_detection is True if original had '<'."""
     if val is None or (isinstance(val, float) and math.isnan(val)):
-        return None
-    s = str(val).strip().replace("<", "").replace(" ", "")
+        return None, False
+    s = str(val).strip()
+    below = "<" in s
+    s = s.replace("<", "").replace(" ", "")
     try:
-        return round(float(s), 1)
+        return round(float(s), 1), below
     except ValueError:
-        return None
+        return None, False
 
 
 def load_test_history():
@@ -132,7 +136,7 @@ def load_test_history():
                 continue
             results = []
             for res_col, date_col, label in rounds:
-                ppb = parse_ppb(row.iloc[res_col] if res_col < len(row) else None)
+                ppb, below = parse_ppb(row.iloc[res_col] if res_col < len(row) else None)
                 date_val = row.iloc[date_col] if date_col < len(row) else None
                 date_str = None
                 if pd.notna(date_val) and date_val is not None:
@@ -141,7 +145,10 @@ def load_test_history():
                     except Exception:
                         pass
                 if ppb is not None or date_str is not None:
-                    results.append({"round": label, "date": date_str, "result_ppb": ppb})
+                    entry = {"round": label, "date": date_str, "result_ppb": ppb}
+                    if below:
+                        entry["below_detection"] = True
+                    results.append(entry)
             if results:
                 # Sort most recent first; entries without a date go last
                 results.sort(key=lambda r: r["date"] or "", reverse=True)
@@ -162,6 +169,34 @@ def build_fountain(row, test_history=None):
     tested_2025 = bool(row.get("tested_2025", False))
 
     fountain_id = str(row["fountain_id"])
+    history = test_history.get(fountain_id, []) if test_history else []
+
+    # If the CSV is missing latest_result_ppb (common for fountains tested only in earlier
+    # rounds), backfill from the most recent test history entry that has a result.
+    below_detection = False
+    if ppb_display is None:
+        for entry in history:  # sorted most-recent-first
+            if entry.get("result_ppb") is not None:
+                ppb_display = entry["result_ppb"]
+                below_detection = entry.get("below_detection", False)
+                break
+    else:
+        for entry in history:
+            if entry.get("result_ppb") is not None:
+                below_detection = entry.get("below_detection", False)
+                break
+
+    # Recompute safety level using backfilled ppb if the CSV had it missing.
+    # Offline statuses stay "unknown" regardless — the fixture isn't in service.
+    if level == "unknown" and ppb_display is not None and status.upper() not in OFFLINE_STATUSES:
+        v = float(ppb_display)
+        if v < 5:
+            level = "safe"
+        elif v <= 15:
+            level = "caution"
+        else:
+            level = "danger"
+
     return {
         "fountain_id": fountain_id,
         "location": str(row.get("location", "")),
@@ -170,14 +205,15 @@ def build_fountain(row, test_history=None):
         "is_bottle_filler": bool(row.get("is_bottle_filler", False)),
         "status": status,
         "latest_result_ppb": ppb_display,
+        "below_detection_limit": below_detection,
         "tested_2025": tested_2025,
         "ever_elevated": bool(row.get("ever_elevated", False)),
         "max_lead_ever_ppb": round(float(max_ppb), 1) if max_ppb is not None else None,
         "remediation_plan": remediation_plan,
         "remediated": remediated,
         "safety_level": level,
-        "recommendation": recommendation(level, ppb_display, status, remediation_plan, remediated),
-        "test_history": test_history.get(fountain_id, []) if test_history else [],
+        "recommendation": recommendation(level, ppb_display, status, remediation_plan, remediated, below_detection),
+        "test_history": history,
     }
 
 
@@ -186,12 +222,41 @@ def build_park(park_row, fountains_for_park, test_history=None):
     lng = nan_to_none(park_row.get("lng"))
 
     fountain_objects = [build_fountain(f, test_history) for _, f in fountains_for_park.iterrows()]
+
+    # Drop offline/removed fixtures that have no test history and no result — no data to show or confirm.
+    # Offline fixtures with a test history are kept for historical reference.
+    fountain_objects = [
+        f for f in fountain_objects
+        if not (
+            f["status"].upper() in OFFLINE_STATUSES
+            and f["latest_result_ppb"] is None
+            and not f["test_history"]
+        )
+    ]
+
     active_levels = [
         f["safety_level"] for f in fountain_objects
         if f["status"].upper() not in OFFLINE_STATUSES
     ]
     p_safety = park_safety(active_levels) if active_levels else "unknown"
     max_ppb = nan_to_none(park_row.get("max_lead_ever_ppb"))
+
+    # Only count active fixtures in the summary — OFF/REMOVED/DOES NOT EXIST
+    # are excluded so "not yet tested" reflects genuinely untested active fountains.
+    # Removed fixtures remain in the fountains array for audit purposes.
+    # Only count active fixtures in the summary — OFF/REMOVED/DOES NOT EXIST
+    # are excluded so "not yet tested" reflects genuinely untested active fountains.
+    # Removed fixtures remain in the fountains array for audit purposes.
+    fountain_counts = {
+        "outdoor": {"safe": 0, "caution": 0, "danger": 0, "unknown": 0, "offline": 0},
+        "indoor":  {"safe": 0, "caution": 0, "danger": 0, "unknown": 0, "offline": 0},
+    }
+    for f in fountain_objects:
+        t = "outdoor" if f["type"] == "outdoor" else "indoor"
+        if f["status"].upper() in OFFLINE_STATUSES:
+            fountain_counts[t]["offline"] += 1
+        else:
+            fountain_counts[t][f["safety_level"]] += 1
 
     return {
         "park_id": str(park_row["park_id"]),
@@ -202,6 +267,7 @@ def build_park(park_row, fountains_for_park, test_history=None):
         "safety_level": p_safety,
         "max_lead_ever_ppb": round(float(max_ppb), 1) if max_ppb is not None else None,
         "total_fixture_count": int(park_row.get("total_fixture_count", 0)),
+        "fountain_counts": fountain_counts,
         "fountains": fountain_objects,
     }
 

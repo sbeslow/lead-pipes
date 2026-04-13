@@ -77,6 +77,10 @@ header .subtitle { font-size: 0.72rem; opacity: 0.6; margin-top: 1px; }
   font-weight: 600;
   min-height: unset;
   cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .tab.active {
   color: white;
@@ -269,12 +273,6 @@ button:active { opacity: 0.85; }
 }
 .f-remediation.pending { background: #fef3c7; color: #92400e; }
 .f-remediation.done    { background: #dcfce7; color: #166534; }
-
-.f-history {
-  font-size: 0.72rem;
-  color: #94a3b8;
-  margin-top: 4px;
-}
 
 /* ---- Fountain rows (clickable) ---- */
 .fountain-row { cursor: pointer; }
@@ -497,13 +495,6 @@ button:active { opacity: 0.85; }
   color: var(--danger);
   margin-bottom: 8px;
   font-weight: 600;
-}
-.contrib-coming-soon {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  font-style: italic;
-  text-align: center;
-  margin-top: 8px;
 }
 .contrib-success {
   font-size: 0.85rem;

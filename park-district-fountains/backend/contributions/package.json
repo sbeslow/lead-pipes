@@ -1,0 +1,6 @@
+{
+  "name": "fountain-contributions",
+  "version": "1.0.0",
+  "description": "Lambda function to receive anonymous fountain corrections and write to S3",
+  "main": "handler.js"
+}

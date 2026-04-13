@@ -1,3 +1,6 @@
 pandas
 geopy
 requests
+flask
+boto3
+python-dotenv
