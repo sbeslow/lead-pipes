@@ -96,7 +96,7 @@ def api_submit():
         "email": clean_text(data.get("email"), MAX_EMAIL_LENGTH),
     }
 
-    bucket = os.environ.get("BUCKET_NAME")
+    bucket = os.environ.get("DRINK_HERE_SUBMISSIONS_S3")
     if not bucket:
         # No S3 configured — log and accept (dev mode)
         current_app.logger.info("Submission (no S3): %s", json.dumps(submission))
