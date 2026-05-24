@@ -20,8 +20,7 @@ scripts/
 
 ## Apps
 
-- `apps/shouldidrinkherecom/` — [ShouldIDrinkHere.com](apps/shouldidrinkherecom/README.md): mobile-first map showing safe/unsafe fountains (legacy static app)
-- `frontend/` + `app/` — current Flask + React app, hosted on AWS App Runner
+- `frontend/` + `app/` — Flask + React app, hosted on AWS App Runner
 
 ## Local Development
 
