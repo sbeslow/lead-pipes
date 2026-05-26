@@ -37,5 +37,5 @@ aws apprunner start-deployment --service-arn "$SERVICE_ARN" --region "$REGION"
 
 echo ""
 echo "==> Done! App Runner is deploying the new image."
-echo "    URL: https://shouldidrinkfromhere.com"
+echo "    URL: https://shouldidrinkhere.com"
 echo "    Check status: aws apprunner describe-service --service-arn $SERVICE_ARN --region $REGION --query 'Service.Status'"

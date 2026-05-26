@@ -34,7 +34,7 @@ cd frontend && npm run dev
 
 ## Deployment
 
-The app runs on AWS App Runner at [shouldidrinkfromhere.com](https://shouldidrinkfromhere.com).
+The app runs on AWS App Runner at [shouldidrinkhere.com](https://shouldidrinkhere.com).
 
 To deploy a new version:
 
