@@ -65,6 +65,72 @@ def recommendation(level, ppb, status, remediation_plan, remediated, below_detec
 SAFETY_RANK = {"danger": 3, "caution": 2, "unknown": 1, "safe": 0}
 
 
+def _outdoor_summary_part(out, out_tested):
+    if out_tested == 0:
+        return None
+    if out["caution"] == 0 and out["danger"] == 0:
+        return "outdoor all safe"
+    parts = []
+    if out["danger"] > 0:
+        parts.append(f"{out['danger']} outdoor do not drink")
+    if out["caution"] > 0:
+        parts.append(f"{out['caution']} outdoor caution")
+    if out["safe"] > 0:
+        parts.append(f"{out['safe']} outdoor safe")
+    return " · ".join(parts)
+
+
+def _indoor_summary_part(inn, inn_tested, problematic_fixtures):
+    if inn_tested == 0 or (inn["caution"] == 0 and inn["danger"] == 0):
+        return None
+    if len(problematic_fixtures) <= 2:
+        descs = []
+        for f in problematic_fixtures:
+            label = "do not drink" if f["safety_level"] == "danger" else "at caution"
+            loc = f["location"] or "indoor fixture"
+            descs.append(f"{loc} {label}")
+        return " · ".join(descs)
+    parts = []
+    if inn["danger"] > 0:
+        parts.append(f"{inn['danger']} indoor do not drink")
+    if inn["caution"] > 0:
+        parts.append(f"{inn['caution']} indoor caution")
+    return " · ".join(parts)
+
+
+def park_summary(fountain_objects, fountain_counts):
+    """One-line human-readable summary for a park, leading with outdoor status."""
+    fc = fountain_counts
+    out = fc["outdoor"]
+    inn = fc["indoor"]
+    out_tested = out["safe"] + out["caution"] + out["danger"]
+    inn_tested = inn["safe"] + inn["caution"] + inn["danger"]
+    total_tested = out_tested + inn_tested
+
+    if total_tested > 0 and out["caution"] + out["danger"] + inn["caution"] + inn["danger"] == 0:
+        return f"All {total_tested} tested safe"
+
+    outdoor_part = _outdoor_summary_part(out, out_tested)
+
+    problematic_indoor = [
+        f for f in fountain_objects
+        if f["type"] != "outdoor"
+        and f["status"].upper() not in OFFLINE_STATUSES
+        and f["safety_level"] in ("caution", "danger")
+    ]
+    indoor_part = _indoor_summary_part(inn, inn_tested, problematic_indoor)
+
+    parts = [p for p in [outdoor_part, indoor_part] if p]
+    if parts:
+        text = " · ".join(parts)
+        return text[0].upper() + text[1:]
+
+    total_unknown = out["unknown"] + inn["unknown"]
+    if total_unknown:
+        return f"{total_unknown} fixture{'s' if total_unknown != 1 else ''} not yet tested"
+    return None
+
+
 def park_safety(fountain_levels):
     """Park-level safety = worst of its ON fountains."""
     if not fountain_levels:
@@ -265,6 +331,7 @@ def build_park(park_row, fountains_for_park, test_history=None):
         "lat": round(float(lat), 6) if lat is not None else None,
         "lng": round(float(lng), 6) if lng is not None else None,
         "safety_level": p_safety,
+        "summary": park_summary(fountain_objects, fountain_counts),
         "max_lead_ever_ppb": round(float(max_ppb), 1) if max_ppb is not None else None,
         "total_fixture_count": int(park_row.get("total_fixture_count", 0)),
         "fountain_counts": fountain_counts,
