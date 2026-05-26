@@ -14,7 +14,9 @@ set -euo pipefail
 REGION="${AWS_REGION:-us-east-1}"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_REPO="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/shouldidrinkherecom"
-SERVICE_ARN="arn:aws:apprunner:$REGION:$ACCOUNT_ID:service/shouldidrinkherecom/56c612a23bfe422d8f04e8f984c36cdf"
+SERVICE_ARN=$(aws apprunner list-services --region "$REGION" \
+  --query "ServiceSummaryList[?ServiceName=='shouldidrinkherecom'].ServiceArn" \
+  --output text)
 
 echo "==> Building React frontend..."
 (cd frontend && npm run build)
@@ -35,5 +37,5 @@ aws apprunner start-deployment --service-arn "$SERVICE_ARN" --region "$REGION"
 
 echo ""
 echo "==> Done! App Runner is deploying the new image."
-echo "    URL: https://mzbgrekfet.us-east-1.awsapprunner.com"
+echo "    URL: https://shouldidrinkfromhere.com"
 echo "    Check status: aws apprunner describe-service --service-arn $SERVICE_ARN --region $REGION --query 'Service.Status'"
