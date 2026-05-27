@@ -8,4 +8,4 @@ apps/
 backend/
 scripts/
 data/raw/
-data/processed/
+data/build/

@@ -1,18 +1,17 @@
 import json
 import os
 import re
-import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
 import boto3
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
+from app.data_loader import load_parks
+
 bp = Blueprint("routes", __name__)
 
-_fountains_cache = None
-
-DATA_PATH = Path(__file__).parent.parent / "data" / "build" / "fountains.json"
+_parks_cache = None
 
 ALLOWED_CORRECTION_TYPES = {"fountain_is_on", "fountain_is_off", "other"}
 MAX_NOTES_LENGTH = 500
@@ -30,11 +29,10 @@ def get_s3():
 
 
 def get_fountains():
-    global _fountains_cache
-    if _fountains_cache is None:
-        with open(DATA_PATH) as f:
-            _fountains_cache = json.load(f)
-    return _fountains_cache
+    global _parks_cache
+    if _parks_cache is None:
+        _parks_cache = {"parks": load_parks()}
+    return _parks_cache
 
 
 def clean_text(val, max_len):
