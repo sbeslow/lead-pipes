@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 
 const CONTRIBUTIONS_API = "/api/submit";
 
-export default function ContributionForm({ fountain }) {
+export default function ContributionForm({ fountain, defaultOpen = false }) {
   const [capturedLat, setCapturedLat] = useState(null);
   const [capturedLng, setCapturedLng] = useState(null);
   const [locStatus, setLocStatus] = useState("");
@@ -83,7 +83,7 @@ export default function ContributionForm({ fountain }) {
   }
 
   return (
-    <details className="contrib-details">
+    <details className="contrib-details" open={defaultOpen || undefined}>
       <summary className="contrib-summary">Submit a correction</summary>
       <form className="contrib-form" ref={formRef} onSubmit={handleSubmit} noValidate>
         <input type="text" name="website" className="contrib-honeypot" tabIndex={-1} autoComplete="off" />

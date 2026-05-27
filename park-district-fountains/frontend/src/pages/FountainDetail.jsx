@@ -125,7 +125,13 @@ export default function FountainDetail() {
 
       <p className="fd-id">Fixture ID: {f.fountain_id}</p>
 
-      <ContributionForm fountain={f} />
+      {f.lat == null && (
+        <p className="fd-gps-nudge">
+          Location unknown — if you're standing at this fountain right now, help us map it by submitting your GPS below.
+        </p>
+      )}
+
+      <ContributionForm fountain={f} defaultOpen={f.lat == null} />
     </div>
   );
 }

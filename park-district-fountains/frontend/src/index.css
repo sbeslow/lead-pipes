@@ -264,6 +264,7 @@ button:active { opacity: 0.85; }
 .rec.unknown { color: var(--unknown); }
 
 .tag.tested { background: #f1f5f9; color: #64748b; }
+.tag.dist  { background: #f1f5f9; color: #64748b; }
 
 .f-remediation {
   font-size: 0.75rem;
@@ -390,6 +391,16 @@ button:active { opacity: 0.85; }
   color: #cbd5e1;
   text-align: center;
   margin-top: 8px;
+}
+
+.fd-gps-nudge {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  color: #1e40af;
+  font-size: 0.82rem;
+  padding: 10px 14px;
+  margin: 10px 0 0;
 }
 
 /* ---- Community contributions ---- */
