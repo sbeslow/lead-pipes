@@ -1,4 +1,5 @@
-import { useParams, useNavigate, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import SafetyBadge from "../components/SafetyBadge";
 import FountainRow from "../components/FountainRow";
 import { parkSummaryText } from "../utils/formatters";
