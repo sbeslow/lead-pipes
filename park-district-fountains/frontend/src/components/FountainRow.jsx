@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import SafetyBadge from "./SafetyBadge";
 import { lastTestedLabel } from "../utils/formatters";
+import { metersToMiles } from "../utils/geo";
 
-export default function FountainRow({ fountain: f }) {
+export default function FountainRow({ fountain: f, dist }) {
   const navigate = useNavigate();
 
   const handler = () => navigate(`/fountains/${f.fountain_id}`);
@@ -27,6 +28,7 @@ export default function FountainRow({ fountain: f }) {
             {f.is_bottle_filler && <span className="tag bottle">Bottle filler</span>}
             {f.status !== "ON" && <span className="tag status">{f.status}</span>}
             <span className="tag tested">{lastTestedLabel(f)}</span>
+            {dist != null && <span className="tag dist">{metersToMiles(dist)}</span>}
           </div>
         </div>
         <div className="f-right">
