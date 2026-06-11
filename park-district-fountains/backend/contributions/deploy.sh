@@ -5,7 +5,7 @@
 #   - AWS CLI configured (aws configure)
 #
 # Usage:
-#   BUCKET_NAME=shouldidrinkherecom-submissions ./deploy.sh
+#   BUCKET_NAME=your-submissions-bucket ./deploy.sh
 #
 # To review submissions afterwards:
 #   aws s3 sync s3://$BUCKET_NAME/submissions/ ./submissions/
@@ -17,7 +17,7 @@ REGION="${AWS_REGION:-us-east-1}"
 HANDLER="handler.handler"
 ROLE_NAME="${FUNCTION_NAME}-role"
 API_NAME="${FUNCTION_NAME}-api"
-BUCKET_NAME="${BUCKET_NAME:?Set BUCKET_NAME env var (e.g. shouldidrinkherecom-submissions)}"
+BUCKET_NAME="${BUCKET_NAME:?Set BUCKET_NAME env var}"
 
 echo "==> Creating S3 submissions bucket (if needed)..."
 if ! aws s3api head-bucket --bucket "$BUCKET_NAME" --region "$REGION" 2>/dev/null; then
