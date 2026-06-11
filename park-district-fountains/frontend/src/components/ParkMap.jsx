@@ -1,9 +1,7 @@
-import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import L from "leaflet";
 import { useNavigate } from "react-router-dom";
 
-// Suppress Leaflet's broken default icon path in bundlers
 delete L.Icon.Default.prototype._getIconUrl;
 
 const COLORS = {
@@ -51,22 +49,17 @@ function spreadCollocated(fountains) {
   return result;
 }
 
-function BoundsController({ mapped, userPos, parkCenter }) {
-  const map = useMap();
-
-  useEffect(() => {
-    const points = mapped.map((f) => [f.lat, f.lng]);
-    if (userPos) points.push([userPos.lat, userPos.lng]);
-
-    if (points.length > 0) {
-      map.fitBounds(L.latLngBounds(points), { padding: [32, 32], maxZoom: 18 });
-    } else {
-      map.setView([parkCenter.lat, parkCenter.lng], 16);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userPos]);
-
-  return null;
+function parkInitialView(mapped, park) {
+  if (mapped.length > 1) {
+    const lats = mapped.map((f) => f.lat);
+    const lngs = mapped.map((f) => f.lng);
+    const clat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const clng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    const span = Math.max(...lats) - Math.min(...lats);
+    const zoom = span < 0.0005 ? 18 : span < 0.002 ? 17 : 16;
+    return { center: [clat, clng], zoom };
+  }
+  return { center: [park.lat, park.lng], zoom: 16 };
 }
 
 export default function ParkMap({ park, fountains, userPos }) {
@@ -76,19 +69,18 @@ export default function ParkMap({ park, fountains, userPos }) {
     fountains.filter((f) => f.lat != null && f.lng != null)
   );
 
-  const center = [park.lat, park.lng];
+  const { center, zoom } = parkInitialView(mapped, park);
 
   return (
     <MapContainer
+      key={park.park_id}
       id="park-map"
       center={center}
-      zoom={16}
+      zoom={zoom}
       zoomControl={true}
       attributionControl={false}
     >
       <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-
-      <BoundsController mapped={mapped} userPos={userPos} parkCenter={{ lat: park.lat, lng: park.lng }} />
 
       {mapped.map((f) => (
         <Marker
