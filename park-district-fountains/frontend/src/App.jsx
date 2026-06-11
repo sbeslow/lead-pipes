@@ -4,6 +4,7 @@ import NearMe from "./pages/NearMe";
 import AllParks from "./pages/AllParks";
 import ParkDetail from "./pages/ParkDetail";
 import FountainDetail from "./pages/FountainDetail";
+import About from "./pages/About";
 
 function Header() {
   const navigate = useNavigate();
@@ -47,6 +48,12 @@ function Header() {
             className={({ isActive }) => `tab${isActive ? " active" : ""}`}
           >
             All Parks
+          </NavLink>
+          <NavLink
+            to="/about"
+            className={({ isActive }) => `tab${isActive ? " active" : ""}`}
+          >
+            About
           </NavLink>
         </div>
       )}
@@ -94,6 +101,7 @@ function AppShell() {
           <Route path="/parks" element={<AllParks />} />
           <Route path="/parks/:parkId" element={<ParkDetail />} />
           <Route path="/fountains/:fountainId" element={<FountainDetail />} />
+          <Route path="/about" element={<About />} />
         </Routes>
       </main>
     </div>
