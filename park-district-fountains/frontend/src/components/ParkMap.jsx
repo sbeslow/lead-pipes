@@ -86,7 +86,7 @@ export default function ParkMap({ park, fountains, userPos }) {
       zoomControl={true}
       attributionControl={false}
     >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
 
       <BoundsController mapped={mapped} userPos={userPos} parkCenter={{ lat: park.lat, lng: park.lng }} />
 
