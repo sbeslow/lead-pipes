@@ -26,7 +26,7 @@ scripts/
 
 ```bash
 # Terminal 1: Flask backend (http://localhost:5000)
-python run.py
+flask --debug run
 
 # Terminal 2: React frontend (http://localhost:5173, proxies /api to :5000)
 cd frontend && npm run dev
