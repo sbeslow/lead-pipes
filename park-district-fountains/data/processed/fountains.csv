@@ -529,15 +529,15 @@ fountain_id,park_id,park_cpd_id,park_name,location,location_description,type,is_
 0034-06-01,27,34,Northerly Island,Firehouse - Kitchen Sink,,indoor,0,OFF,Fix/Replace LSL,0,,0,0,2.0,,
 0034-07-01,27,34,Northerly Island,Firehouse - Fountain,,indoor,0,OFF,Fix/Replace LSL,0,,0,1,50.1,,
 0040-01-01,28,40,Gompers,Gompers #1 - High,"Left field of junior diamond 2, near sport roller court",outdoor,0,ON,Remain,1,2.0,1,0,2.0,41.97665310536709,-87.73790596347017
-0040-01-02,28,40,Gompers,Gompers #1 - Low,"Left field of junior diamond 2, near sport roller court",outdoor,0,ON,Remain,0,2.0,1,0,2.0,,
-0040-01-BF,28,40,Gompers,Gompers #1 - Bottle Filler,"Left field of junior diamond 2, near sport roller court",outdoor,1,ON,Remain,0,2.0,1,0,2.0,,
+0040-01-02,28,40,Gompers,Gompers #1 - Low,"Left field of junior diamond 2, near sport roller court",outdoor,0,ON,Remain,0,2.0,1,0,2.0,41.97665310536709,-87.73790596347017
+0040-01-BF,28,40,Gompers,Gompers #1 - Bottle Filler,"Left field of junior diamond 2, near sport roller court",outdoor,1,ON,Remain,0,2.0,1,0,2.0,41.97665310536709,-87.73790596347017
 0040-02-01,28,40,Gompers,Gompers #2 - North,North of Kildare entrance on foster,outdoor,0,OFF,Fix/Replace LSL,0,,0,1,33.9,,
 0040-02-02,28,40,Gompers,Gompers #2 - South,North of Kildare entrance on foster,outdoor,0,OFF,Fix/Replace LSL,0,,0,0,3.9,,
 0040-03-01,28,40,Gompers,Gompers #3 - High,West of playground,outdoor,0,ON,Remain,1,2.0,1,0,2.0,41.975652730595044,-87.73668927466261
-0040-03-02,28,40,Gompers,Gompers #3 - Middle,West of playground,outdoor,0,ON,Remain,0,2.0,1,0,2.0,,
-0040-03-03,28,40,Gompers,Gompers #3 - Low,West of playground,outdoor,0,ON,Remain,0,2.0,1,0,2.0,,
+0040-03-02,28,40,Gompers,Gompers #3 - Middle,West of playground,outdoor,0,ON,Remain,0,2.0,1,0,2.0,41.975652730595044,-87.73668927466261
+0040-03-03,28,40,Gompers,Gompers #3 - Low,West of playground,outdoor,0,ON,Remain,0,2.0,1,0,2.0,41.975652730595044,-87.73668927466261
 0040-04-01,28,40,Gompers,Gompers #4,Pool deck,outdoor,0,CONT,Fix/Replace LSL,0,2.0,1,0,5.8,,
-0040-05-01,28,40,Gompers,Gompers #5 - High,"Gompers Monument, at Foster and Pulaski",outdoor,0,ON,Remain,0,,0,0,2.0,,
+0040-05-01,28,40,Gompers,Gompers #5 - High,"Gompers Monument, at Foster and Pulaski",outdoor,0,ON,Remain,0,,0,0,2.0,41.974295437039785,-87.7320054968099
 0040-05-02,28,40,Gompers,Gompers #5 - Low,"Gompers Monument, at Foster and Pulaski",outdoor,0,ON,Remain,0,,0,0,2.0,41.974295437039785,-87.7320054968099
 0040-06-01,28,40,Gompers,Gompers #6 - High,"North of Keeler parking lot, near tennis courts",outdoor,0,ON,Remain,1,,0,0,2.0,,
 0040-06-02,28,40,Gompers,Gompers #6 - Low,"North of Keeler parking lot, near tennis courts",outdoor,0,ON,Remain,0,,0,0,,,
