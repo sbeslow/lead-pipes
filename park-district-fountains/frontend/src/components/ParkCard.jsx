@@ -27,7 +27,7 @@ export default function ParkCard({ park, dist }) {
             {dist != null && ` · ${metersToMiles(dist)}`}
           </p>
         </div>
-        <SafetyBadge level={park.safety_level} />
+        <SafetyBadge level={park.safety_level} untestedCount={park.untested_count} />
       </div>
       <p className="park-card-address">{park.address}</p>
       {summary && <p className="park-card-summary">{summary}</p>}

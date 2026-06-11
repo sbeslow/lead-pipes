@@ -13,6 +13,9 @@ const COLORS = {
   unknown: "#64748b",
 };
 
+const BOUNDARY_OUTSIDE = { color: "#64748b", weight: 2, fillColor: "#64748b", fillOpacity: 0.05 };
+const BOUNDARY_INSIDE  = { color: "#3b82f6", weight: 2.5, fillColor: "#3b82f6", fillOpacity: 0.10 };
+
 function markerIcon(color) {
   return L.divIcon({
     className: "",
@@ -38,10 +41,7 @@ function spreadCollocated(fountains) {
   }
   const result = [];
   for (const group of grouped.values()) {
-    if (group.length === 1) {
-      result.push({ ...group[0] });
-      continue;
-    }
+    if (group.length === 1) { result.push({ ...group[0] }); continue; }
     const r = 0.00008;
     group.forEach((f, i) => {
       const angle = (2 * Math.PI * i) / group.length;
@@ -63,13 +63,33 @@ function parkInitialView(mapped, park) {
   return { center: [park.lat, park.lng], zoom: 16 };
 }
 
-export default function ParkMap({ park, fountains, userPos }) {
-  const navigate = useNavigate();
-  const containerRef = useRef(null);
-  const mapRef = useRef(null);
-  const userMarkerRef = useRef(null);
+// Ray-casting point-in-polygon; ring is [[lng, lat], …] (GeoJSON order)
+function pointInRing(lat, lng, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)
+      inside = !inside;
+  }
+  return inside;
+}
 
-  // Create map once on mount — never touch viewport again
+function isPointInFeature(lat, lng, feature) {
+  const { type, coordinates } = feature.geometry;
+  const rings = type === "Polygon" ? coordinates : coordinates.flat(1);
+  return rings.some((ring) => pointInRing(lat, lng, ring));
+}
+
+export default function ParkMap({ park, fountains, userPos, onInsideChange }) {
+  const navigate = useNavigate();
+  const containerRef  = useRef(null);
+  const mapRef        = useRef(null);
+  const userMarkerRef = useRef(null);
+  const boundaryRef   = useRef(null);   // L.geoJSON layer
+  const featureRef    = useRef(null);   // raw GeoJSON feature for pip
+  const isInsideRef   = useRef(null);   // null = unknown yet
+
+  // Create map + boundary once per park
   useEffect(() => {
     const mapped = spreadCollocated(
       fountains.filter((f) => f.lat != null && f.lng != null)
@@ -93,31 +113,71 @@ export default function ParkMap({ park, fountains, userPos }) {
 
     mapRef.current = map;
 
+    // Fetch park boundaries and add the matching outline
+    const parkNo = parseInt(park.park_id, 10);
+    fetch("/park_boundaries.geojson")
+      .then((r) => r.json())
+      .then(({ features }) => {
+        const feature = features.find((f) => f.properties.PARK_NO === parkNo);
+        if (!feature || !mapRef.current) return;
+
+        featureRef.current = feature;
+        const layer = L.geoJSON(feature, { style: BOUNDARY_OUTSIDE }).addTo(mapRef.current);
+        boundaryRef.current = layer;
+        mapRef.current.fitBounds(layer.getBounds(), { padding: [24, 24] });
+      })
+      .catch(() => {}); // silently ignore if file not available
+
     return () => {
       map.remove();
-      mapRef.current = null;
+      mapRef.current    = null;
       userMarkerRef.current = null;
+      boundaryRef.current   = null;
+      featureRef.current    = null;
+      isInsideRef.current   = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [park.park_id]);
 
-  // Update user dot without moving the map
+  // Update user dot and inside/outside state
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     if (userPos) {
+      // Update marker
       const latlng = [userPos.lat, userPos.lng];
       if (userMarkerRef.current) {
         userMarkerRef.current.setLatLng(latlng);
       } else {
         userMarkerRef.current = L.marker(latlng, { icon: userIcon }).addTo(map);
       }
-    } else if (userMarkerRef.current) {
-      userMarkerRef.current.remove();
-      userMarkerRef.current = null;
+
+      // Inside/outside detection
+      const feature = featureRef.current;
+      const inside = feature ? isPointInFeature(userPos.lat, userPos.lng, feature) : false;
+
+      if (inside !== isInsideRef.current) {
+        isInsideRef.current = inside;
+        onInsideChange?.(inside);
+      }
+
+      // Update boundary color and map view
+      if (boundaryRef.current) {
+        boundaryRef.current.setStyle(inside ? BOUNDARY_INSIDE : BOUNDARY_OUTSIDE);
+      }
+      if (inside) {
+        map.setView(latlng, 18);
+      } else if (boundaryRef.current) {
+        map.fitBounds(boundaryRef.current.getBounds(), { padding: [24, 24] });
+      }
+    } else {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
     }
-  }, [userPos]);
+  }, [userPos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div ref={containerRef} id="park-map" />;
 }

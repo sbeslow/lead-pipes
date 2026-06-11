@@ -235,7 +235,8 @@ def _build_park(park_row, fountains_for_park, test_history=None):
         f["safety_level"] for f in fountain_objects
         if f["status"].upper() not in OFFLINE_STATUSES
     ]
-    p_safety = _park_safety(active_levels) if active_levels else "unknown"
+    tested_levels = [lvl for lvl in active_levels if lvl != "unknown"]
+    p_safety = _park_safety(tested_levels) if tested_levels else "unknown"
     max_ppb = _nan_to_none(park_row.get("max_lead_ever_ppb"))
 
     fountain_counts = {
@@ -249,6 +250,10 @@ def _build_park(park_row, fountains_for_park, test_history=None):
         else:
             fountain_counts[t][f["safety_level"]] += 1
 
+    untested_count = (
+        fountain_counts["outdoor"]["unknown"] + fountain_counts["indoor"]["unknown"]
+    )
+
     return {
         "park_id": str(park_row["park_id"]),
         "park_name": str(park_row["park_name"]),
@@ -256,6 +261,7 @@ def _build_park(park_row, fountains_for_park, test_history=None):
         "lat": round(float(lat), 6) if lat is not None else None,
         "lng": round(float(lng), 6) if lng is not None else None,
         "safety_level": p_safety,
+        "untested_count": untested_count,
         "summary": _park_summary(fountain_objects, fountain_counts),
         "max_lead_ever_ppb": round(float(max_ppb), 1) if max_ppb is not None else None,
         "total_fixture_count": int(park_row.get("total_fixture_count", 0)),
