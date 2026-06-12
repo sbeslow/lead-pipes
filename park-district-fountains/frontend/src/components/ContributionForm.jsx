@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 const CONTRIBUTIONS_API = "/api/submit";
 
 export default function ContributionForm({ fountain, defaultOpen = false }) {
+  const navigate = useNavigate();
   const [capturedLat, setCapturedLat] = useState(null);
   const [capturedLng, setCapturedLng] = useState(null);
   const [locStatus, setLocStatus] = useState("");
@@ -71,6 +73,7 @@ export default function ContributionForm({ fountain, defaultOpen = false }) {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setSuccess(true);
+      setTimeout(() => navigate(-1), 1500);
       form.reset();
       setCapturedLat(null);
       setCapturedLng(null);

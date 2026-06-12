@@ -639,3 +639,25 @@ details:not([open]) summary.group-label::after {
   margin-bottom: 20px;
   line-height: 1.5;
 }
+
+@media (min-width: 768px) {
+  #app { max-width: 1280px; }
+
+  #detail-body {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  #detail-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  #detail-right {
+    width: 480px;
+    flex-shrink: 0;
+  }
+
+  #park-map { height: 420px; }
+}
