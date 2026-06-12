@@ -5,11 +5,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import boto3
-from flask import Blueprint, current_app, jsonify, request, send_from_directory
+from flask import Blueprint, jsonify, request, send_from_directory
 
 from app.data_loader import load_parks
 
 bp = Blueprint("routes", __name__)
+
+DIST = Path(__file__).parent.parent / "frontend" / "dist"
 
 _parks_cache = None
 
@@ -118,8 +120,7 @@ def api_submit():
 @bp.route("/", defaults={"path": ""})
 @bp.route("/<path:path>")
 def serve_spa(path):
-    dist = Path(current_app.static_folder)
-    file_path = dist / path
+    file_path = DIST / path
     if path and file_path.exists():
-        return send_from_directory(str(dist), path)
-    return send_from_directory(str(dist), "index.html")
+        return send_from_directory(str(DIST), path)
+    return send_from_directory(str(DIST), "index.html")

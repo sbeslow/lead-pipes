@@ -18,6 +18,11 @@ data/build/        → generated artifacts consumed by apps
 scripts/
 ```
 
+## Data Sources
+
+- Lead test results: FOIA request to the Chicago Park District (raw response in `data/raw/FOIA_RESPONSES/`)
+- Park boundary polygons: [CPD Parks](https://data.cityofchicago.org/Parks-Recreation/CPD_Parks/ejsh-fztr/about_data) from the Chicago Data Portal (raw shapefile in `data/raw/ParkDistrictParks/`)
+
 ## Apps
 
 - `frontend/` + `app/` — Flask + React app, hosted on AWS App Runner
@@ -26,7 +31,7 @@ scripts/
 
 ```bash
 # Terminal 1: Flask backend (http://localhost:5000)
-python run.py
+flask --debug run
 
 # Terminal 2: React frontend (http://localhost:5173, proxies /api to :5000)
 cd frontend && npm run dev

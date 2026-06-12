@@ -229,6 +229,22 @@ button:active { opacity: 0.85; }
   color: #94a3b8;
   margin: 14px 0 7px;
 }
+summary.group-label {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+summary.group-label::after {
+  content: "▾";
+  font-size: 0.8rem;
+  transition: transform 0.15s;
+}
+details:not([open]) summary.group-label::after {
+  transform: rotate(-90deg);
+}
 
 .fountain-row {
   border-radius: 8px;
@@ -622,4 +638,26 @@ button:active { opacity: 0.85; }
   font-size: 0.95rem;
   margin-bottom: 20px;
   line-height: 1.5;
+}
+
+@media (min-width: 768px) {
+  #app { max-width: 1280px; }
+
+  #detail-body {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  #detail-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  #detail-right {
+    width: 480px;
+    flex-shrink: 0;
+  }
+
+  #park-map { height: 420px; }
 }
