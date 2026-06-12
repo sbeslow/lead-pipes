@@ -667,7 +667,7 @@ fountain_id,park_id,park_cpd_id,park_name,location,location_description,type,is_
 0084-06-BF,45,84,Kilbourn,Gym Hallway - West - Bottle Filler,,indoor,1,ON,Remain,0,2.0,1,0,2.0,,
 0084-07-01,45,84,Kilbourn,Gym Hallway - East,,indoor,0,ON,Remain,0,2.0,1,0,2.0,,
 0084-08-01,45,84,Kilbourn,2nd Floor Kitchen Sink,,indoor,0,ON,Remain,0,5.7,1,0,5.7,,
-0085-01-01,46,85,Kolmar,Kolmar #1,On Kolmar,outdoor,0,CONT,Fix/Replace LSL,0,2.0,1,1,24.4,,
+0085-01-01,46,85,Kolmar,Kolmar #1,On Kolmar,outdoor,0,CONT,Fix/Replace LSL,0,2.0,1,1,24.4,41.95667272839891,-87.74175998335522
 0086-01-01,47,86,Mayfair,Mayfair #1 - High,West of fieldhouse at spraypool,outdoor,0,ON,Remain,0,2.0,1,0,2.0,,
 0086-01-02,47,86,Mayfair,Mayfair #1 - Middle,West of fieldhouse at spraypool,outdoor,0,ON,Remain,0,,0,0,2.0,,
 0086-01-03,47,86,Mayfair,Mayfair #1 - Low,West of fieldhouse at spraypool,outdoor,0,ON,Remain,0,2.0,1,0,2.0,,
