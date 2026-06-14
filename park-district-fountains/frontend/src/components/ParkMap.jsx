@@ -93,6 +93,34 @@ function isPointInFeature(lat, lng, feature) {
   return rings.some((ring) => pointInRing(lat, lng, ring));
 }
 
+// Flat-earth point-to-segment distance in meters (accurate enough for <100m distances)
+const M_PER_DEG_LAT = 111319;
+function distToSegmentMeters(plat, plng, alat, alng, blat, blng) {
+  const cos = Math.cos((plat * Math.PI) / 180);
+  const py = plat * M_PER_DEG_LAT,  px = plng * M_PER_DEG_LAT * cos;
+  const ay = alat * M_PER_DEG_LAT,  ax = alng * M_PER_DEG_LAT * cos;
+  const by = blat * M_PER_DEG_LAT,  bx = blng * M_PER_DEG_LAT * cos;
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+  return Math.sqrt((px - ax - t * dx) ** 2 + (py - ay - t * dy) ** 2);
+}
+
+// True if the point is within bufferMeters of any edge of the feature boundary
+function isNearBoundary(lat, lng, feature, bufferMeters) {
+  const { type, coordinates } = feature.geometry;
+  const rings = type === "Polygon" ? coordinates : coordinates.flat(1);
+  return rings.some((ring) =>
+    ring.some((_, i) => {
+      if (i === 0) return false;
+      const [alng, alat] = ring[i - 1], [blng, blat] = ring[i];
+      return distToSegmentMeters(lat, lng, alat, alng, blat, blng) <= bufferMeters;
+    })
+  );
+}
+
+const BORDER_BUFFER_METERS = 4.572; // 15 feet
+
 export default function ParkMap({ park, fountains, userPos, onInsideChange }) {
   const navigate = useNavigate();
   const containerRef  = useRef(null);
@@ -176,7 +204,10 @@ export default function ParkMap({ park, fountains, userPos, onInsideChange }) {
       }
 
       const feature = featureRef.current;
-      const inside = feature ? isPointInFeature(userPos.lat, userPos.lng, feature) : false;
+      const inside = feature
+        ? (isPointInFeature(userPos.lat, userPos.lng, feature) ||
+           isNearBoundary(userPos.lat, userPos.lng, feature, BORDER_BUFFER_METERS))
+        : false;
 
       if (inside !== isInsideRef.current) {
         isInsideRef.current = inside;
