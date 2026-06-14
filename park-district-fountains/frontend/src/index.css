@@ -595,7 +595,32 @@ details:not([open]) summary.group-label::after {
 }
 
 /* ---- Park map ---- */
-#park-map { border-radius: 10px; overflow: hidden; height: 260px; margin-bottom: 16px; }
+.park-map-wrap { position: relative; margin-bottom: 16px; }
+#park-map { border-radius: 10px; overflow: hidden; height: 260px; }
+#park-map-recenter {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1000;
+  background: white;
+  border: 2px solid rgba(0,0,0,0.2);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #1e293b;
+  line-height: 1.6;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+#park-map-recenter:hover { background: #f1f5f9; }
+.map-popup { font-size: 0.82rem; line-height: 1.4; min-width: 160px; }
+.map-popup-top { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+.map-popup-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.map-popup-name { font-weight: 700; color: #1e293b; }
+.map-popup-rec { color: #475569; margin: 0 0 6px; }
+.map-popup-link { color: #2563eb; font-weight: 600; text-decoration: none; }
+.map-popup-link:hover { text-decoration: underline; }
 .f-marker {
   width: 18px; height: 18px; border-radius: 50%;
   border: 2px solid white;

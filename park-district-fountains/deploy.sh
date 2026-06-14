@@ -26,7 +26,7 @@ aws ecr get-login-password --region "$REGION" \
   | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
 
 echo "==> Building Docker image..."
-docker build -t shouldidrinkherecom .
+docker build --platform linux/amd64 -t shouldidrinkherecom .
 
 echo "==> Pushing to ECR..."
 docker tag shouldidrinkherecom:latest "$ECR_REPO:latest"
