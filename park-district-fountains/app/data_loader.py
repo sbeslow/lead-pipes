@@ -52,7 +52,9 @@ def _recommendation(level, ppb, status, remediation_plan, remediated, below_dete
         if in_remediation:
             plan = f": {remediation_plan}" if remediation_plan else ""
             return f"Fountain under remediation{plan} — no test result available."
-        return "Fountain is offline or removed."
+        if str(status).strip().upper() in OFFLINE_STATUSES:
+            return "Fountain is offline or removed."
+        return "Not yet tested — no lead result on record."
 
 
 def _nan_to_none(val):
@@ -87,9 +89,6 @@ def _load_test_history():
 
 
 def _build_fountain(row, test_history=None):
-    level = _safety_level(row)
-    ppb = _nan_to_none(row.get("latest_result_ppb"))
-    ppb_display = round(float(ppb), 1) if ppb is not None else None
     max_ppb = _nan_to_none(row.get("max_lead_ever_ppb"))
     status = str(row.get("status", "")).strip()
     remediation_plan = _str_or_none(row.get("remediation_plan"))
@@ -99,27 +98,43 @@ def _build_fountain(row, test_history=None):
     fountain_id = str(row["fountain_id"])
     history = test_history.get(fountain_id, []) if test_history else []
 
+    # Use the most recent dated entry from history as the authoritative result.
+    # The CSV's latest_result_ppb only captures the initial round test and can
+    # miss subsequent followups that may have higher lead readings.
+    ppb_display = None
     below_detection = False
-    if ppb_display is None:
-        for entry in history:
-            if entry.get("result_ppb") is not None:
-                ppb_display = entry["result_ppb"]
-                below_detection = entry.get("below_detection", False)
-                break
-    else:
-        for entry in history:
-            if entry.get("result_ppb") is not None:
-                below_detection = entry.get("below_detection", False)
-                break
+    for entry in history:
+        if entry.get("result_ppb") is not None:
+            ppb_display = entry["result_ppb"]
+            below_detection = entry.get("below_detection", False)
+            break
 
-    if level == "unknown" and ppb_display is not None and status.upper() not in OFFLINE_STATUSES:
-        v = float(ppb_display)
-        if v < 5:
-            level = "safe"
-        elif v <= 15:
-            level = "caution"
-        else:
-            level = "danger"
+    # Fall back to CSV value only when history has no results at all
+    if ppb_display is None:
+        ppb_csv = _nan_to_none(row.get("latest_result_ppb"))
+        if ppb_csv is not None:
+            ppb_display = round(float(ppb_csv), 1)
+
+    # Derive true historical max from test history — CSV value misses followups
+    history_max = max(
+        (e["result_ppb"] for e in history if e.get("result_ppb") is not None),
+        default=None,
+    )
+    if history_max is not None:
+        if max_ppb is None or history_max > float(max_ppb):
+            max_ppb = history_max
+
+    # Derive safety level from the true latest ppb
+    if status.upper() in OFFLINE_STATUSES or str(status).upper() == "NAN":
+        level = "unknown"
+    elif ppb_display is None:
+        level = "unknown"
+    elif float(ppb_display) < 5:
+        level = "safe"
+    elif float(ppb_display) <= 15:
+        level = "caution"
+    else:
+        level = "danger"
 
     lat = _nan_to_none(row.get("lat"))
     lng = _nan_to_none(row.get("lng"))
