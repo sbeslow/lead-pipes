@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import SafetyBadge from "../components/SafetyBadge";
 import ContributionForm from "../components/ContributionForm";
 import { formatPpb, lastTestedLabel } from "../utils/formatters";
@@ -9,9 +9,10 @@ export default function FountainDetail() {
   const { parks } = useData();
 
   let fountain = null;
-  for (const park of parks) {
-    const f = park.fountains.find((f) => f.fountain_id === fountainId);
-    if (f) { fountain = f; break; }
+  let park = null;
+  for (const p of parks) {
+    const f = p.fountains.find((f) => f.fountain_id === fountainId);
+    if (f) { fountain = f; park = p; break; }
   }
 
   if (!fountain) {
@@ -20,11 +21,20 @@ export default function FountainDetail() {
 
   const f = fountain;
   const lastTested = lastTestedLabel(f, true);
+  const navigate = useNavigate();
 
   return (
     <div id="fountain-detail">
       <div className={`fd-header ${f.safety_level}`}>
         <div>
+          {park && (
+            <p
+              className="fd-park-link"
+              onClick={() => navigate(`/parks/${park.park_id}`)}
+            >
+              {park.park_name}
+            </p>
+          )}
           <h2 className="fd-title">{f.location}</h2>
           {f.location_description && (
             <p className="fd-subtitle">{f.location_description}</p>

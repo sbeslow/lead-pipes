@@ -319,6 +319,8 @@ details:not([open]) summary.group-label::after {
 .fd-header.danger  { background: var(--danger-bg); }
 .fd-header.unknown { background: var(--unknown-bg); }
 
+.fd-park-link { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; cursor: pointer; margin-bottom: 4px; }
+.fd-park-link:hover { opacity: 1; text-decoration: underline; }
 .fd-title    { font-size: 1.05rem; font-weight: 800; margin-bottom: 3px; }
 .fd-subtitle { font-size: 0.78rem; color: #64748b; }
 
